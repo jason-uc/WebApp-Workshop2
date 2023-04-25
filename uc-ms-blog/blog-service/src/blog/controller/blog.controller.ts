@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path = require('path');
 import { Image } from '../model/Image.interface';
 import { join } from 'path';
+import { MessagePattern } from '@nestjs/microservices';
 
 export const BLOG_ENTRIES_URL ='http://localhost:3007/api/blog-entries';
 
@@ -32,10 +33,9 @@ export class BlogController {
     constructor(private blogService: BlogService) {}
 
 
-    @UseGuards(JwtAuthGuard)
-    @Post()
-    create(@Body()blogEntry: BlogEntry, @Request() req): Observable<BlogEntry> {
-        const user = req.user;
+    @MessagePattern('createBlog')
+    create(serviceRequest: ServiceRequestContextDTO): Observable<BlogEntry> {
+        const { user, blogEntry } = serviceRequest;
         return this.blogService.create(user, blogEntry);
     }
 

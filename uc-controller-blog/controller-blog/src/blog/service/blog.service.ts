@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Observable, of, from } from 'rxjs';
 import { BlogEntry } from '../model/blog-entry.interface';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,11 +8,14 @@ import { User } from '../../user/models/user.interface';
 import { switchMap, map } from 'rxjs/operators';
 import { Pagination, IPaginationOptions, paginate } from 'nestjs-typeorm-paginate';
 import slugify from 'slugify';
+import { ClientProxy } from '@nestjs/microservices';
+
 
 @Injectable()
 export class BlogService {
 
     constructor(
+        @Inject('BLOG_SERVICE') private readonly blogMS: ClientProxy,
         @InjectRepository(BlogEntryEntity) private readonly blogRepository: Repository<BlogEntryEntity>
     ) {}
 
@@ -20,12 +23,7 @@ export class BlogService {
     create(user: User, blogEntry: BlogEntry): Observable<BlogEntry> {
         blogEntry.author = user;
         console.log(blogEntry);
-        return this.generateSlug(blogEntry.title).pipe(
-            switchMap((slug: string) => {
-                blogEntry.slug = slug;
-                return from(this.blogRepository.save(blogEntry));
-            })
-        )
+        return this.blogMS.send('createBlog', {user, blogEntry});
     }
 
     findAll(): Observable<BlogEntry[]> {
